@@ -6,14 +6,19 @@ using Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption.ConfigurationM
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using System.CodeDom.Compiler;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using System.Security.Claims;
+using System.IdentityModel.Tokens.Jwt;
 
 namespace DozoDashBoardAPI.Controllers
 {
-    [Microsoft.AspNetCore.Mvc.Route("api/controller")]
+    [Microsoft.AspNetCore.Mvc.Route("api/[controller]")]
+
     [ApiController]
     public class CredentialsController : ControllerBase
     {
-        private IConfiguration _configuration;
+        private readonly IConfiguration _configuration;
         private readonly DozoDashBoardDbContext _db;
 
         public CredentialsController(IConfiguration configuration, DozoDashBoardDbContext db)
@@ -26,7 +31,7 @@ namespace DozoDashBoardAPI.Controllers
         public IActionResult Login([FromBody] UserLogin userLogin)
         {
             var user = Authenticate(userLogin);
-            if (user == null)
+            if (user != null)
             {
                 var token = Generate(user);
                 return Ok(token);
@@ -36,7 +41,29 @@ namespace DozoDashBoardAPI.Controllers
 
         private string Generate(UserModel user)
         {
-            throw new NotImplementedException();
+            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
+            var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
+
+            var claims = new[]
+            {
+                new Claim(ClaimTypes.NameIdentifier,user.UserName),
+                new Claim(ClaimTypes.Email,user.Email),
+                new Claim(ClaimTypes.GivenName,user.FirstName),
+                new Claim(ClaimTypes.Surname,user.LastName),
+                new Claim(ClaimTypes.Role,user.Role)
+            };
+
+            var token = new JwtSecurityToken(
+                _configuration["Jwt:Issuer"],
+                _configuration["Jwt:Audience"],
+                claims,
+                expires: DateTime.Now.AddMinutes(15),
+                signingCredentials: credentials
+            );
+
+
+            return new JwtSecurityTokenHandler().WriteToken(token);
+
         }
 
         private UserModel Authenticate(UserLogin userLogin)
