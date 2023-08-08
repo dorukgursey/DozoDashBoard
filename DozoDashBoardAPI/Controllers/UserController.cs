@@ -10,9 +10,9 @@ namespace DozoDashBoardAPI.Controllers
     [ApiController]
     public class UserController : ControllerBase
     {
-        [HttpGet("Admins")]
+        [HttpGet("GetUser")]
         [Authorize]
-        public IActionResult Admins()
+        public IActionResult GetUser()
         {
             var currentUser = GetCurrentUser();
 
