@@ -10,6 +10,9 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using System.Security.Claims;
 using System.IdentityModel.Tokens.Jwt;
+using BCrypt.Net;
+using Microsoft.EntityFrameworkCore;
+using System.Data;
 
 namespace DozoDashBoardAPI.Controllers
 {
@@ -27,7 +30,7 @@ namespace DozoDashBoardAPI.Controllers
             _db = db;
         }
         [AllowAnonymous]
-        [HttpPost]
+        [HttpPost("Login")]
         public IActionResult Login([FromBody] UserLogin userLogin)
         {
             var user = Authenticate(userLogin);
@@ -37,6 +40,39 @@ namespace DozoDashBoardAPI.Controllers
                 return Ok(token);
             }
             return NotFound("User Not Found");
+        }
+
+        [AllowAnonymous]
+        [HttpPost("Register")]
+        public async Task<IActionResult> RegisterAsync([FromBody] UserRegister userRegister)
+        {
+            if (await IsUsernameTakenAsync(userRegister.UserName))
+            {
+                return BadRequest("Username is already taken.");
+            }
+            if (!IsPasswordValid(userRegister.Password))
+            {
+                return BadRequest("Invalid password. Password should meet the required constraints.");
+            }
+            string hashedPassword = HashPassword(userRegister.Password);
+
+            // Create a new user entity with the provided registration data
+            var newUser = new UserModel
+            {
+                UserId = Guid.NewGuid(),
+                FirstName = userRegister.FirstName,
+                LastName = userRegister.LastName,
+                UserName = userRegister.UserName,
+                Email = userRegister.Email,
+                Password = hashedPassword,
+                Role = "User",
+            };
+
+            // Save the new user to the database
+            await _db.Users.AddAsync(newUser);
+            await _db.SaveChangesAsync();
+
+            return Ok("User registration successful.");
         }
 
         private string Generate(UserModel user)
@@ -68,12 +104,51 @@ namespace DozoDashBoardAPI.Controllers
 
         private UserModel Authenticate(UserLogin userLogin)
         {
-            var currentUser = _db.Users.FirstOrDefault(o => o.UserName.ToLower() == userLogin.UserName.ToLower() && o.Password == userLogin.Password);
-            if (currentUser != null)
+            string hashedPassword = HashPassword(userLogin.Password);
+
+            var currentUser = _db.Users.FirstOrDefault(o => o.UserName.ToLower() == userLogin.UserName.ToLower());
+            if (currentUser != null && BCrypt.Net.BCrypt.Verify(userLogin.Password, currentUser.Password))
             {
                 return currentUser;
             }
             return null;
+        }
+        private bool IsPasswordValid(string password)
+        {
+            // Example constraints (customize based on your requirements)
+            const int MinimumLength = 8;
+            const int MinimumUppercase = 1;
+            const int MinimumLowercase = 1;
+            const int MinimumDigit = 1;
+
+            // Check minimum length
+            if (password.Length < MinimumLength)
+            {
+                return false;
+            }
+
+            // Check for minimum uppercase, lowercase, and digit characters
+            int uppercaseCount = password.Count(char.IsUpper);
+            int lowercaseCount = password.Count(char.IsLower);
+            int digitCount = password.Count(char.IsDigit);
+
+            return uppercaseCount >= MinimumUppercase
+                && lowercaseCount >= MinimumLowercase
+                && digitCount >= MinimumDigit;
+        }
+        private async Task<bool> IsUsernameTakenAsync(string username)
+        {
+            return await _db.Users.AnyAsync(u => u.UserName == username);
+        }
+        private string HashPassword(string password)
+        {
+            // Generate a secure salt
+            string salt = BCrypt.Net.BCrypt.GenerateSalt();
+
+            // Hash the password using the generated salt
+            string hashedPassword = BCrypt.Net.BCrypt.HashPassword(password, salt);
+
+            return hashedPassword;
         }
     }
 }
