@@ -1,1 +1,3 @@
-# DozoDashBoardTemplate
+# Credentials
+## Username : TestUser
+## Password : Test123
