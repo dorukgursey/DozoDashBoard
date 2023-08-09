@@ -8,7 +8,7 @@ var builder = WebApplication.CreateBuilder(args);
 var Configuration = builder.Configuration;
 
 builder.Services.AddDbContext<DozoDashBoardDbContext>(options =>
-            options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection")));
+            options.UseNpgsql(Configuration.GetConnectionString("DefaultConnection")));
 
 // Add services to the container.
 builder.Services.AddMvc();
