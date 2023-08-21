@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace DozoDashBoard.Migrations
 {
-    public partial class InıtialCreate : Migration
+    public partial class V2 : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {

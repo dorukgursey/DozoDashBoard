@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace DozoDashBoard.Migrations
 {
     [DbContext(typeof(DozoDashBoardDbContext))]
-    [Migration("20230809105113_InıtialCreate")]
-    partial class InıtialCreate
+    [Migration("20230818184931_V2")]
+    partial class V2
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {

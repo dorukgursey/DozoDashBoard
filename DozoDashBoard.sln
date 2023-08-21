@@ -5,7 +5,7 @@ VisualStudioVersion = 17.5.33516.290
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DozoDashBoard", "DozoDashBoard\DozoDashBoard.csproj", "{53AB2753-EA5F-4CC0-98FD-EDF75556D1E1}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DozoDashBoardAPI", "DozoDashBoardAPI\DozoDashBoardAPI.csproj", "{CE7704E2-0258-4A43-A413-F41354311F1F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DozoDashBoardAPI", "DozoDashBoardAPI\DozoDashBoardAPI.csproj", "{CE7704E2-0258-4A43-A413-F41354311F1F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

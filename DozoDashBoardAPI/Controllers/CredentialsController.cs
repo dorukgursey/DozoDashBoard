@@ -53,7 +53,11 @@ namespace DozoDashBoardAPI.Controllers
             }
             if (!_credentialsExtensions.IsPasswordValid(userRegister.Password))
             {
-                return BadRequest("Invalid password. Password should meet the required constraints.");
+                return BadRequest("Invalid password. Password should meet the required constraints.\n" +
+                    "* Minimum Length should be 8\n" +
+                    "* Should contain at least 1 Uppercase\n" +
+                    "* Should contain at least 1 Lowercase\n" +
+                    "* Should contain at least 1 Digit");
             }
             string hashedPassword = _credentialsExtensions.HashPassword(userRegister.Password);
 
