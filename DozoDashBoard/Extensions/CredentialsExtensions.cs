@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace DozoDashBoard.Extensions
@@ -12,11 +13,13 @@ namespace DozoDashBoard.Extensions
     {
         private readonly IConfiguration _configuration;
         private readonly DozoDashBoardDbContext _db;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public CredentialsExtensions(IConfiguration configuration, DozoDashBoardDbContext db)
+        public CredentialsExtensions(IConfiguration configuration, DozoDashBoardDbContext db, IHttpContextAccessor httpContextAccessor)
         {
             _configuration = configuration;
             _db = db;
+            _httpContextAccessor = httpContextAccessor;
         }
         public string Generate(UserModel user)
         {
@@ -43,6 +46,56 @@ namespace DozoDashBoard.Extensions
 
             return new JwtSecurityTokenHandler().WriteToken(token);
 
+        }
+        public RefreshToken CreateRefreshToken()
+        {
+            var refreshToken = new RefreshToken
+            {
+                Token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64)),
+                Expires = DateTime.UtcNow.AddDays(7),
+                Created = DateTime.UtcNow
+            };
+            return refreshToken;
+        }
+        public async Task SetRefreshToken(RefreshToken refreshToken, UserModel user)
+        {
+            var cookieOptions = new CookieOptions
+            {
+                HttpOnly = true,
+                Expires = refreshToken.Expires,
+                
+            };
+            _httpContextAccessor?.HttpContext?.Response.Cookies.Append("refreshToken", refreshToken.Token, cookieOptions);
+
+            user.RefreshToken = refreshToken.Token;
+            user.TokenCreated = refreshToken.Created;
+            user.TokenExpires = refreshToken.Expires;
+
+            await _db.SaveChangesAsync();
+        }
+        public async Task<AuthResponse> Refresh()
+        {
+            var refreshToken = _httpContextAccessor?.HttpContext?.Request.Cookies["refreshToken"];
+            var user = await _db.Users.FirstOrDefaultAsync(u => u.RefreshToken == refreshToken);
+            if(user == null)
+            {
+                return new AuthResponse { Message = "Invalid Refresh Token" };
+            }
+            else if(user.TokenExpires < DateTime.UtcNow)
+            {
+                return new AuthResponse { Message = "Token Expired" };
+            }
+            string token = Generate(user);
+            var newRefreshToken = CreateRefreshToken();
+            await SetRefreshToken(newRefreshToken, user);
+
+            return new AuthResponse
+            {
+                Success = true,
+                Token = token,
+                RefreshToken = newRefreshToken.Token,
+                TokenExpires = newRefreshToken.Expires
+            };
         }
 
         public UserModel Authenticate(UserLogin userLogin)

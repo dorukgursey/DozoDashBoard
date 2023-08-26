@@ -14,6 +14,7 @@ builder.Services.AddDbContext<DozoDashBoardDbContext>(options =>
 builder.Services.AddMvc();
 builder.Services.AddControllers();
 builder.Services.AddRazorPages();
+builder.Services.AddHttpContextAccessor();
 
 var app = builder.Build();
 

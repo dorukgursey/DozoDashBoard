@@ -32,15 +32,33 @@ namespace DozoDashBoardAPI.Controllers
         }
         [AllowAnonymous]
         [HttpPost("Login")]
-        public IActionResult Login([FromBody] UserLogin userLogin)
+        public async Task<AuthResponse> Login([FromBody] UserLogin userLogin)
         {
             var user = _credentialsExtensions.Authenticate(userLogin);
             if (user != null)
             {
                 var token = _credentialsExtensions.Generate(user);
-                return Ok(token);
+                var refreshToken = _credentialsExtensions.CreateRefreshToken();
+                await _credentialsExtensions.SetRefreshToken(refreshToken, user);
+
+                return new AuthResponse
+                {
+                    Success = true,
+                    Token = token,
+                    RefreshToken = refreshToken.Token,
+                    TokenExpires = refreshToken.Expires,
+                };
             }
-            return NotFound("User Not Found");
+            return new AuthResponse { Message = "NotFound"};
+        }
+        [HttpPost("refresh-token")]
+        public async Task<ActionResult<string>> RefreshToken()
+        {
+            var response = await _credentialsExtensions.Refresh();
+            if (response.Success)
+                return Ok(response);
+
+            return BadRequest(response.Message);
         }
 
         [AllowAnonymous]
